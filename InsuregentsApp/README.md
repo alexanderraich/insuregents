@@ -13,7 +13,7 @@ npm start
 
 ## Step 2: Build and run your app
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use the following command to build and run your Android app:
+With Metro running, open a new terminal window/pane from the root of your React Native project, then run:
 
 ### Android
 
