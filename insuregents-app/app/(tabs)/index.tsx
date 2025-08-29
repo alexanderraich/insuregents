@@ -1,7 +1,9 @@
 import { Image } from 'expo-image';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-import { Platform, StyleSheet, View, Button, Text, ActivityIndicator, ScrollView } from 'react-native';
+import { PermissionsAndroid, Platform, StyleSheet, View, Button, Text, ActivityIndicator, ScrollView } from 'react-native';
+
+import GoogleFit, { Scopes } from 'react-native-google-fit';
 
 
 import { HelloWave } from '@/components/HelloWave';
@@ -9,11 +11,68 @@ import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
+
 export default function HomeScreen() {
 
 const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [steps, setSteps] = useState<number | null>(null);
+
+  const options = {
+    scopes: [
+      Scopes.FITNESS_ACTIVITY_READ,
+      Scopes.FITNESS_ACTIVITY_WRITE,
+    ],
+  };
+
+
+
+
+        useEffect(() => {
+
+
+      const requestPermission = async () => {
+        if (Platform.OS === 'android' && Platform.Version >= 29) {
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACTIVITY_RECOGNITION
+          );
+          if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+            setError('Activity Recognition permission denied');
+          }
+        }
+      };
+      requestPermission();
+
+    const fetchSteps = async () => {
+      try {
+        const authResult = await GoogleFit.authorize(options);
+        setError(authResult.success);
+        if (authResult.success) {
+
+
+          const start = new Date();
+          start.setHours(0, 0, 0, 0);
+          const end = new Date();
+          const res = await GoogleFit.getDailyStepCountSamples({
+            startDate: start.toISOString(),
+            endDate: end.toISOString(),
+          });
+          const stepsData = res.find(r => r.source === 'com.google.android.gms:estimated_steps');
+          const todaySteps = stepsData?.steps?.[0]?.value ?? 0;
+          setSteps(todaySteps);
+        }
+      } catch (e) {
+
+        setSteps(null);
+      }
+    };
+    if (Platform.OS === 'android') {
+
+      fetchSteps();
+    }
+  }, []);
 
 
       const postData = async () => {
@@ -83,6 +142,9 @@ const [result, setResult] = useState<any>(null);
         <ThemedText type="title">Insuregents rule!!!</ThemedText>
         <HelloWave />
       </ThemedView>
+
+      <Text>Today's steps: {steps ?? 'N/A'}</Text>
+
 
     <View style={{ flex: 1, padding: 16 }}>
       <Button title="Post to API" onPress={postData} />
